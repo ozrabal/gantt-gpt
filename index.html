@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gantt Chart</title>
+  <style>
+    canvas {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gantt Chart</h1>
+  <form id="taskForm">
+    <label for="taskName">Task name:</label>
+    <input type="text" id="taskName" name="taskName" required>
+    <label for="startDate">Start date:</label>
+    <input type="date" id="startDate" name="startDate" required>
+    <label for="endDate">End date:</label>
+    <input type="date" id="endDate" name="endDate" required>
+    <button type="submit">Add task</button>
+  </form>
+  <canvas id="ganttChart" width="800" height="400"></canvas>
+  <script src="gantt.js"></script>
+</body>
+</html>
