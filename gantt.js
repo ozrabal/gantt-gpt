@@ -1,8 +1,7 @@
+const handlerWidth = 5;
 const taskHeight = 30;
-const handlerWidth = 10;
+const paddingLeft = 50;
 const dragSensitivity = 5;
-const paddingLeft = 10;
-let animationFrameRequested = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   const taskForm = document.getElementById('taskForm');
@@ -25,9 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
       endDate: new Date(2023, 3, 20),
     },
   ];
-
-
-
 
   drawGanttChart(tasks, ctx);
 
@@ -53,74 +49,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
   canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
-  tasks.forEach((task, idx) => {
-    const taskX = getDateOffset(task.startDate, ctx, tasks);
-    const taskY = taskHeight * idx;
-    const taskWidth = getDateOffset(task.endDate, ctx, tasks) - taskX;
-
-    if (x >= taskX && x <= taskX + handlerWidth && y >= taskY && y <= taskY + taskHeight) {
-      dragging = true;
-      dragTask = task;
-      dragStartX = x;
-      dragStartTaskStart = taskX;
-      dragMode = 'start';
-    } else if (x >= taskX + taskWidth - handlerWidth && x <= taskX + taskWidth && y >= taskY && y <= taskY + taskHeight) {
-      dragging = true;
-      dragTask = task;
-      dragStartX = x;
-      dragStartTaskStart = taskX;
-      dragMode = 'end';
-    }
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+  
+    tasks.forEach((task, idx) => {
+      const taskX = getDateOffset(task.startDate, ctx, tasks);
+      const taskY = taskHeight * idx;
+      const taskWidth = getDateOffset(task.endDate, ctx, tasks) - taskX;
+  
+      if (x >= taskX && x <= taskX + handlerWidth && y >= taskY && y <= taskY + taskHeight) {
+        dragging = true;
+        dragTask = task;
+        dragStartX = x;
+        dragStartTaskStart = taskX;
+        dragMode = 'start';
+      } else if (x >= taskX + taskWidth - handlerWidth && x <= taskX + taskWidth && y >= taskY && y <= taskY + taskHeight) {
+        dragging = true;
+        dragTask = task;
+        dragStartX = x;
+        dragStartTaskStart = taskX;
+        dragMode = 'end';
+      }
+    });
   });
-  });
 
-
-
+  
   canvas.addEventListener('mousemove', (e) => {
     if (dragging) {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const deltaX = x - dragStartX;
   
-      const msPerPixel = (tasks[tasks.length - 1].endDate - tasks[0].startDate) / (ctx.canvas.width - 2 * paddingLeft);
-      const msDelta = deltaX * msPerPixel;
-      const daysDelta = Math.round(msDelta / (1000 * 60 * 60 * 24));
-      const msRoundedDelta = daysDelta * 1000 * 60 * 60 * 24;
-  
-      if (dragMode === 'start') {
-        const newStartDate = new Date(dragTask.startDate.getTime() + msRoundedDelta);
-        if (newStartDate < dragTask.endDate) {
-          dragTask.startDate = newStartDate;
+      if (Math.abs(deltaX) >= dragSensitivity) {
+        const msPerPixel = (tasks[tasks.length - 1].endDate - tasks[0].startDate) / (ctx.canvas.width - 2 * paddingLeft);
+        const msDelta = deltaX * msPerPixel;
+        
+        if (dragMode === 'start') {
+          const newStartDate = new Date(dragTask.startDate.getTime() + msDelta);
+          if (newStartDate < dragTask.endDate) {
+            dragTask.startDate = newStartDate;
+          }
+        } else if (dragMode === 'end') {
+          const newEndDate = new Date(dragTask.endDate.getTime() + msDelta);
+          if (newEndDate > dragTask.startDate) {
+            dragTask.endDate = newEndDate;
+          }
         }
-      } else if (dragMode === 'end') {
-        const newEndDate = new Date(dragTask.endDate.getTime() + msRoundedDelta);
-        if (newEndDate > dragTask.startDate) {
-          dragTask.endDate = newEndDate;
-        }
-      }
   
-      if (!animationFrameRequested) {
-        animationFrameRequested = true;
-        requestAnimationFrame(() => {
-          drawGanttChart(tasks, ctx);
-          animationFrameRequested = false;
-        });
+        drawGanttChart(tasks, ctx);
+        dragStartX = x;
+        dragStartTaskStart = getDateOffset(dragTask.startDate, ctx, tasks);
       }
-  
-      dragStartX = x;
-      dragStartTaskStart = getDateOffset(dragTask.startDate, ctx, tasks);
     }
   });
-  
-  
+
   canvas.addEventListener('mouseup', () => {
     dragging = false;
     dragTask = null;
   });
-  
 });
 
 function getDateOffset(date, ctx, tasks) {
@@ -140,16 +126,20 @@ function getDateFromOffset(offset, ctx, tasks) {
   return new Date(minDate.getTime() + days * 1000 * 60 * 60 * 24);
 }
 
-
-
 function drawGanttChart(tasks, ctx) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+  if (tasks.length === 0) {
+    return;
+  }
+
+  const rowHeight = ctx.canvas.height / (tasks.length + 1);
 
   const minDate = tasks.reduce((min, task) => task.startDate < min ? task.startDate : min, tasks[0].startDate);
   const maxDate = tasks.reduce((max, task) => task.endDate > max ? task.endDate : max, tasks[0].endDate);
   const days = (maxDate - minDate) / (1000 * 60 * 60 * 24);
 
-  const rowHeight = ctx.canvas.height / (tasks.length + 1);
+
   const colWidth = ctx.canvas.width / (days + 1);
 
   // Draw month and day divisions
